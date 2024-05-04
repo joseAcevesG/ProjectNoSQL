@@ -1,0 +1,11 @@
+airline,from,to,day,month,year,duration,age,gender,reason,stay,transit,connection,wait,ticket,checked_bags,carry_on
+American Airlines,LAX,SJC,9,5,2015,872,58,male,Business/Work,Friend/Family,Mobility as a service,False,0,First Class,1,True
+Alaska,LAX,PDX,13,9,2022,660,48,undisclosed,Back Home,Home,Mobility as a service,False,0,Economy,0,False
+Delta Airlines,LAX,JFK,24,4,2019,601,22,male,On vacation/Pleasure,Short-term homestay,,True,289,Economy,1,True
+Volaris,GDL,JFK,11,12,2014,427,11,undisclosed,On vacation/Pleasure,Home,Public Transportation,False,0,First Class,0,False
+Volaris,LAX,PDX,2,12,2017,458,86,unspecified,On vacation/Pleasure,Hotel,,True,201,Economy,3,False
+Aeromexico,LAX,JFK,6,6,2014,933,19,undisclosed,Business/Work,Short-term homestay,,True,333,Business,0,False
+Alaska,JFK,LAX,25,6,2017,34,67,undisclosed,Back Home,Home,Mobility as a service,False,0,First Class,2,True
+Alaska,JFK,PDX,22,8,2017,981,35,undisclosed,On vacation/Pleasure,Hotel,,True,168,Business,3,True
+Aeromexico,LAX,PDX,26,10,2017,469,76,undisclosed,Back Home,Home,Public Transportation,False,0,Economy,3,False
+Volaris,JFK,GDL,18,5,2016,119,61,male,On vacation/Pleasure,Friend/Family,Mobility as a service,False,0,Business,3,False
