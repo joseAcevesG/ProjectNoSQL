@@ -1,7 +1,6 @@
-# cspell: ignore pydgraph dgraph tomasa uids ITESO
-import datetime
+# cspell: ignore pydgraph homestay iterrows isna nquads uids orderasc
 import json
-from io import StringIO
+from collections import Counter
 
 import pandas as pd
 import pydgraph
@@ -20,6 +19,9 @@ type Flight {
     year
     duration
     ticket
+     transit
+    connection
+    wait
     departs_from
     arrives_at
 }
@@ -34,7 +36,6 @@ type Passenger {
     books
     travels_for
     carries
-    transits_through
 }
 
 type Trip {
@@ -47,12 +48,6 @@ type Luggage {
     carry_on
 }
 
-type Transit {
-    transit
-    connection
-    wait
-}
-
 name: string @index(exact) .
 age: int @index(int) .
 gender: string @index(exact) .
@@ -62,7 +57,7 @@ year: int @index(int) .
 duration: int .
 ticket: string @index(exact) .
 reason: string @index(exact) .
-stay: string .
+stay: string @index(exact).
 transit: string @index(exact) .
 connection: bool .
 wait: int .
@@ -75,39 +70,16 @@ arrives_at: uid @reverse .
 books: [uid] @reverse .
 travels_for: [uid] @reverse .
 carries: [uid] @reverse .
-transits_through: [uid] @reverse .
-
     """
     return client.alter(pydgraph.Operation(schema=schema))
 
 
-def prepare_dgraph_mutation(file_path):
-    # Leemos los datos desde el archivo CSV
-    # df = pd.read_csv(file_path)
+def prepare_mutation(file_path):
+    df = pd.read_csv(file_path)
 
-    # temp
-    string_data = """airline,from,to,day,month,year,duration,age,gender,reason,stay,transit,connection,wait,ticket,checked_bags,carry_on
-American Airlines,LAX,SJC,9,5,2015,872,58,male,Business/Work,Friend/Family,Mobility as a service,False,0,First Class,1,True
-Alaska,LAX,PDX,13,9,2022,660,48,undisclosed,Back Home,Home,Mobility as a service,False,0,Economy,0,False
-Delta Airlines,LAX,JFK,24,4,2019,601,22,male,On vacation/Pleasure,Short-term homestay,,True,289,Economy,1,True
-Volaris,GDL,JFK,11,12,2014,427,11,undisclosed,On vacation/Pleasure,Home,Public Transportation,False,0,First Class,0,False
-Volaris,LAX,PDX,2,12,2017,458,86,unspecified,On vacation/Pleasure,Hotel,,True,201,Economy,3,False
-Aeromexico,LAX,JFK,6,6,2014,933,19,undisclosed,Business/Work,Short-term homestay,,True,333,Business,0,False
-Alaska,JFK,LAX,25,6,2017,34,67,undisclosed,Back Home,Home,Mobility as a service,False,0,First Class,2,True
-Alaska,JFK,PDX,22,8,2017,981,35,undisclosed,On vacation/Pleasure,Hotel,,True,168,Business,3,True
-Aeromexico,LAX,PDX,26,10,2017,469,76,undisclosed,Back Home,Home,Public Transportation,False,0,Economy,3,False
-Volaris,JFK,GDL,18,5,2016,119,61,male,On vacation/Pleasure,Friend/Family,Mobility as a service,False,0,Business,3,False
-"""
-    data = StringIO(string_data)
-
-    # Leemos los datos usando pandas
-    df = pd.read_csv(data)
-
-    # Identificamos aerolíneas y aeropuertos únicos
     airlines = set(df["airline"])
     airports = set(df["from"]).union(set(df["to"]))
 
-    # Preparamos las mutaciones para aerolíneas y aeropuertos
     airline_mutations = [
         f'_:airline_{airline.replace(" ", "_")} <type> "Airline" .\n_:airline_{airline.replace(" ", "_")} <name> "{airline}" .'
         for airline in airlines
@@ -117,16 +89,13 @@ Volaris,JFK,GDL,18,5,2016,119,61,male,On vacation/Pleasure,Friend/Family,Mobilit
         for airport in airports
     ]
 
-    # Crear nodos Trip estáticos
     reasons = ["On vacation/Pleasure", "Business/Work", "Back home"]
     stays = ["Hotel", "Short-term homestay", "Home", "Friend/Family"]
     trip_combinations = []
     for reason in reasons:
         if reason == "Back home":
-            # Solo agregar combinación con "Home" para "Back home"
             trip_combinations.append((reason, "Home"))
         else:
-            # Todas las combinaciones para otras razones
             for stay in stays:
                 trip_combinations.append((reason, stay))
     trip_mutations = [
@@ -134,7 +103,6 @@ Volaris,JFK,GDL,18,5,2016,119,61,male,On vacation/Pleasure,Friend/Family,Mobilit
         for reason, stay in trip_combinations
     ]
 
-    # Preparar mutaciones para vuelos, pasajeros, equipaje y tránsito
     flight_mutations = []
     for index, row in df.iterrows():
         trip_node = f'trip_{row["reason"].replace(" ", "_").replace("/", "")}_{row["stay"].replace(" ", "_").replace("/", "")}'
@@ -148,6 +116,9 @@ _:flight{index} <ticket> "{row['ticket']}" .
 _:airline_{row['airline'].replace(" ", "_")} <operates> _:flight{index} .
 _:flight{index} <departs_from> _:airport_{row['from'].replace(" ", "_")} .
 _:flight{index} <arrives_at> _:airport_{row['to'].replace(" ", "_")} .
+_:flight{index} <connection> "{('true' if row['connection'] else 'false')}" .
+_:flight{index} <transit> "{row['transit'] if not pd.isna(row['transit']) else ''}" .
+_:flight{index} <wait> "{row['wait']}" .
 _:passenger{index} <type> "Passenger" .
 _:passenger{index} <age> "{row['age']}" .
 _:passenger{index} <gender> "{row['gender']}" .
@@ -158,10 +129,6 @@ _:luggage{index} <checked_bags> "{row['checked_bags']}" .
 _:luggage{index} <carry_on> "{('true' if row['carry_on'] else 'false')}" .
 _:passenger{index} <carries> _:luggage{index} .
 _:transit{index} <type> "Transit" .
-_:transit{index} <transit> "{row['transit'] if not pd.isna(row['transit']) else ''}" .
-_:transit{index} <connection> "{('true' if row['connection'] else 'false')}" .
-_:transit{index} <wait> "{row['wait']}" .
-_:passenger{index} <transits_through> _:transit{index} .
 """
         )
     all_mutations = "\n".join(
@@ -171,15 +138,12 @@ _:passenger{index} <transits_through> _:transit{index} .
 
 
 def create_data(client):
-    mutations = prepare_dgraph_mutation("flight_passengers.csv")
+    mutations = prepare_mutation("flight_passengers.csv")
 
-    # Creamos una nueva transacción
     txn = client.txn()
     try:
-        # Usamos las mutaciones preparadas
         response = txn.mutate(set_nquads=mutations)
 
-        # Confirmamos la transacción
         commit_response = txn.commit()
         print(f"Commit Response: {commit_response}")
         print(f"UIDs: {response.uids}")
@@ -190,34 +154,31 @@ def create_data(client):
         txn.discard()
 
 
-def delete_event(client, name):
-    # Create a new transaction.
-    txn = client.txn()
-    try:
-        query1 = """query search_event($a: string) {
-            all(func: eq(name, $a)) {
-               uid
-            }
-        }"""
-        variables1 = {"$a": name}
-        res1 = client.txn(read_only=True).query(query1, variables=variables1)
-        ppl1 = json.loads(res1.json)
-        for event in ppl1["all"]:
-            print("UID: " + event["uid"])
-            txn.mutate(del_obj=event)
-            print(f"{name} deleted")
-        commit_response = txn.commit()
-        print(commit_response)
-    finally:
-        txn.discard()
+def extract_month_transit(data):
+    months = [item["month"] for item in data["all"][0]["~arrives_at"]]
+    month_count = Counter(months)
+    sorted_months = sorted(month_count.items(), key=lambda x: x[1], reverse=True)
+    return sorted_months
 
 
-def search_event(client, name):
+""" {
+  peak_months(func: eq(name, "GDL")){
+    ~arrives_at @filter(eq(transit, "Mobility as a service")){
+        month
+	    }
+    }
+} """
+
+
+def bests_month_transit(client, name):
     query = """
-    query search_event($a: string) {
+    query search_peak_months($a: string) {
         all(func: eq(name, $a)) {
             uid
             name
+            ~arrives_at @filter(eq(transit, "Mobility as a service")) {
+                month
+            }
             place_in {
                 uid
                 name
@@ -233,63 +194,100 @@ def search_event(client, name):
     variables = {"$a": name}
     res = client.txn(read_only=True).query(query, variables=variables)
     ppl = json.loads(res.json)
-
-    # Print results.
-    print(f"Number of people named {name}: {len(ppl['all'])}")
-    print(f"Data associated with {name}:\n{json.dumps(ppl, indent=2)}")
+    return extract_month_transit(ppl)
 
 
-def search_person(client, age):
-    query = """query search_person($a: int) {
-        all(func: gt(age, $a), orderasc: age) {
-        uid
-        name
-        age
+def extract_month_reason(data):
+
+    filtered_data = [
+        entry for entry in data["all"][0]["~arrives_at"] if "~books" in entry
+    ]
+    months = [item["month"] for item in filtered_data]
+    month_count = Counter(months)
+    sorted_months = sorted(month_count.items(), key=lambda x: x[1], reverse=True)
+    return sorted_months
+
+
+""" {
+  peak_travel_reasons(func: eq(name, "GDL")){
+    ~arrives_at {
+    	month
+    	~books{
+    		travels_for @filter(eq(reason, "On vacation/Pleasure")and (eq(stay, "Short-term homestay") or eq(stay, "Hotel"))){
+          reason
+          stay
         }
-    }"""
+      }
+  	}
+  }
+} """
 
-    variables = {"$a": age}
+
+def best_month_reason(client, name):
+    query = """
+    query search_peak_travel_reasons($a: string) {
+        all(func: eq(name, $a)) {
+            uid
+            name
+            ~arrives_at {
+                month
+                ~books{
+                    travels_for @filter(eq(reason, "On vacation/Pleasure") and (eq(stay, "Short-term homestay") or eq(stay, "Hotel"))) {
+                        reason
+                        stay
+                    }
+                }
+            }
+        }
+    }
+    """
+    variables = {"$a": name}
     res = client.txn(read_only=True).query(query, variables=variables)
     ppl = json.loads(res.json)
-
-    # Print results.
-    print(f"Number of people older than {age}: {len(ppl['all'])}")
-    print(f"Data associated with people older than {age}:\n{json.dumps(ppl, indent=2)}")
+    return extract_month_reason(ppl)
 
 
-def count_events(client):
-    query = """query count_events {
-        all(func: type(Organizations)) {
-        uid
-        name
-        number_of_events: count(organizes)
-        }
-    }"""
+def find_common_best_month(list1, list2):
+    dict1 = dict(list1)
+    dict2 = dict(list2)
 
-    res = client.txn(read_only=True).query(query)
-    ppl = json.loads(res.json)
+    common_months = set(dict1.keys()) & set(dict2.keys())
+    combined_frequencies = {month: dict1[month] + dict2[month] for month in common_months}
 
-    # Print results.
-    print(f"Number of organizations: {len(ppl['all'])}")
-    print(f"Data associated with organizations:\n{json.dumps(ppl, indent=2)}")
+    best_month = max(combined_frequencies, key=combined_frequencies.get, default=None)
+
+    return best_month
 
 
-def search_events_ordered_by_date(client, pagination):
-    query = f"""query search_events_ordered_by_date {{
-        all(func: type(Event), orderasc: date, first: {pagination}) {{
-        uid
-        name
-        date
-        }}
-    }}"""
-
-    res = client.txn(read_only=True).query(query)
-    ppl = json.loads(res.json)
-
-    # Print results.
-    print(f"Number of events: {len(ppl['all'])}")
-    print(f"Data associated with events:\n{json.dumps(ppl, indent=2)}")
-
+def process_data(client, name):
+    months_transit = bests_month_transit(client, name)
+    months_reason = best_month_reason(client, name)
+    print(f"the best moth for putting advertisement for {name} is ", end="")
+    match find_common_best_month(months_transit, months_reason):
+        case "1":
+            print("January")
+        case "2":
+            print("February")
+        case "3":
+            print("March")
+        case "4":
+            print("April")
+        case "5":
+            print("May")
+        case "6":
+            print("June")
+        case "7":
+            print("July")
+        case "8":
+            print("August")
+        case "9":
+            print("September")
+        case "10":
+            print("October")
+        case "11":
+            print("November")
+        case "12":
+            print("December")
 
 def drop_all(client):
     return client.alter(pydgraph.Operation(drop_all=True))
@@ -298,5 +296,5 @@ def drop_all(client):
 if __name__ == "__main__":
     # Run the main function
     file_path = "flight_passengers.csv"
-    mutations = prepare_dgraph_mutation(file_path)
+    mutations = prepare_mutation(file_path)
     print(mutations)

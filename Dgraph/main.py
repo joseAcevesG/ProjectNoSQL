@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+# cspell: ignore pydgraph DGRAPH
 import os
 
 import model
@@ -10,13 +10,9 @@ DGRAPH_URI = os.getenv("DGRAPH_URI", "localhost:9080")
 def print_menu():
     mm_options = {
         1: "Create data",
-        2: "Search event",
-        3: "Search person",
-        4: "Count events",
-        5: "Search events ordered by date",
-        6: "Delete event",
-        7: "Drop All",
-        8: "Exit",
+        2: "peek best month for a airport",
+        3: "Drop All",
+        4: "Exit",
     }
     for key in mm_options.keys():
         print(key, "--", mm_options[key])
@@ -53,23 +49,12 @@ def main():
         option = int(input("Enter your choice: "))
         if option == 1:
             model.create_data(client)
-        if option == 2:
-            event = input("Event: ")
-            model.search_event(client, event)
-        if option == 3:
-            age = input("Age: ")
-            model.search_person(client, age)
-        if option == 4:
-            model.count_events(client)
-        if option == 5:
-            pagination = input("Number of events: ")
-            model.search_events_ordered_by_date(client, pagination)
-        if option == 6:
-            event = input("Event: ")
-            model.delete_event(client, event)
-        if option == 7:
+        elif option == 2:
+            airport = input("Enter the airport: ")
+            model.process_data(client, airport)
+        elif option == 3:
             model.drop_all(client)
-        if option == 8:
+        if option == 4:
             model.drop_all(client)
             close_client_stub(client_stub)
             exit(0)

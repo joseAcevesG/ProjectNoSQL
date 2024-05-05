@@ -1,1 +1,9 @@
-pydgraph
+grpcio==1.54.0
+numpy==1.26.4
+pandas==2.2.2
+protobuf==4.22.3
+pydgraph==23.0.2
+python-dateutil==2.9.0.post0
+pytz==2024.1
+six==1.16.0
+tzdata==2024.1
