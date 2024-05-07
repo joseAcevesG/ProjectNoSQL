@@ -142,7 +142,7 @@ def main():
                 "gender": (
                     row["gender"].lower()
                     if row["gender"].lower() != "unspecified"
-                    and row["gender"].lower() != "undisclosed"
+                    or row["gender"].lower() != "undisclosed"
                     else None
                 ),
                 "reason": row["reason"].replace("/", "_").lower(),
