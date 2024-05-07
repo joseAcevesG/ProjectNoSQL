@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import logging
 from typing import List
 
 from bson import Regex
@@ -7,6 +8,14 @@ from fastapi.encoders import jsonable_encoder
 from model import *
 
 router = APIRouter()
+
+log = logging.getLogger()
+log.setLevel("INFO")
+handler = logging.FileHandler("router.log")
+handler.setFormatter(
+    logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s")
+)
+log.addHandler(handler)
 
 
 @router.post(
@@ -111,69 +120,6 @@ def create_ticket(request: Request, ticket: TicketType = Body(...)):
     )
 
     return created_ticket
-
-
-@router.get(
-    "/", response_description="Get all airlines", response_model=List[Airline]
-)
-def list_airlines(request: Request, rating: float = 0):
-    airlines = list(
-        request.app.database["airlines"].find(
-            {"average_rating": {"$gte": rating}}
-        )
-    )
-    return airlines
-
-
-@router.get(
-    "/{id}",
-    response_description="Get a single airline by id",
-    response_model=Airline,
-)
-def find_airline(id: str, request: Request):
-    if (
-        airline := request.app.database["airlines"].find_one({"_id": id})
-    ) is not None:
-        return airline
-
-    raise HTTPException(
-        status_code=status.HTTP_404_NOT_FOUND,
-        detail=f"airline with ID {id} not found",
-    )
-
-
-@router.put(
-    "/{id}",
-    response_description="Update a airline by id",
-    response_model=Airline,
-)
-def update_airline(
-    id: str, request: Request, airline: FlightUpdate = Body(...)
-):
-    flightUpdate = jsonable_encoder(flightUpdate)
-
-    if not request.app.database["airlines"].find_one({"_id": id}):
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Flight with ID {id} not found",
-        )
-
-    request.app.database["airlines"].update_one(
-        {"_id": id}, {"$set": flightUpdate}
-    )
-    flightUpdate = request.app.database["airlines"].find_one({"_id": id})
-
-    if flightUpdate is not None:
-        return flightUpdate
-    else:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Flight with ID {id} not found",
-        )
-
-
-@router.delete("/{id}", response_description="Delete a airline")
-def delete_airline(id: str, request: Request, response: Response):
     delete_flight = request.app.database["airlines"].delete_one({"_id": id})
 
     if delete_flight.deleted_count:
@@ -185,18 +131,40 @@ def delete_airline(id: str, request: Request, response: Response):
     )
 
 
-@router.get("/automated-carts-recommendation", response_model=Airline)
-def get_automated_carts_recommendation(request: Request, response: Response):
-    recommendations = []
-    for airport_data in request.app.database["airlines"].find():
-        score = airport_data.get("some_metric", 0)
-        recommendations.append(
-            {"airport": airport_data["airport"], "benefit_score": score}
+@router.get("/automated-carts-recommendation", response_model=List[str])
+def analyze_airport_benefits(request: Request):
+    # Retrieve all documents (Assuming the dataset is not excessively large; otherwise, consider batching)
+    documents = list(
+        request.app.database["airlines"].aggregate(
+            [
+                {
+                    "$match": {
+                        "transit": {
+                            "$in": [
+                                "Mobility as a service",
+                                "Airport cab",
+                                "Public Transportation",
+                            ]
+                        }
+                    }
+                },
+                {
+                    "$group": {
+                        "_id": {"from_": "$from_", "transit": "$transit"},
+                        "count": {"$sum": 1},
+                    }
+                },
+                {
+                    "$group": {
+                        "_id": "$_id.from_",
+                        "transport_not_private": {"$sum": "$count"},
+                    }
+                },
+                {
+                    "$sort": {"transport_not_private": -1}
+                },  # Ordena descendente por el conteo de transport_not_private
+            ]
         )
+    )
 
-    if recommendations:
-        return recommendations
-    else:
-        raise HTTPException(
-            status_code=404, detail="No recommendations available"
-        )
+    return [doc.get("_id") for doc in documents]
