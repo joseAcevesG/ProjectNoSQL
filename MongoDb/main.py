@@ -17,7 +17,7 @@ def startup_db_client():
     app.mongodb_client = MongoClient(MONGODB_URI)
     app.database = app.mongodb_client[DB_NAME]
 
-    try:
+    """ try:
         app.database["airlines"].create_index([("transit", 1)])
         print("Índice único en el campo 'transportation' creado exitosamente.")
     except OperationFailure as e:
@@ -35,7 +35,7 @@ def startup_db_client():
         print(f"No se pudo crear el índice único en el campo 'ticket': {e}")
         print(
             f"Connected to MongoDB at: {MONGODB_URI} \n\t Database: {DB_NAME}"
-        )
+        ) """
     print(f"Connected to MongoDB at: {MONGODB_URI} \n\t Database: {DB_NAME}")
 
 
