@@ -3,6 +3,7 @@
 A place to share cassandra app code
 
 ### Setup a python virtual env with python cassandra installed
+
 ```
 # If pip is not present in you system
 sudo apt update
@@ -22,8 +23,8 @@ python3 -m venv ./venv
 pip install -r requirements.txt
 ```
 
-
 ### Launch cassandra container
+
 ```
 # To start a new container
 docker run --name node01 -p 9042:9042 -d cassandra
@@ -33,15 +34,17 @@ docker start node01
 ```
 
 ### Copy data to container
+
 ```
 docker cp tools/data.cql node01:/root/data.cql
 docker exec -it node01 cqlsh
 #In cqlsh:
 USE air_quality;
-SOURCE '/root/data.cql'
+SOURCE '/root/data.cql';
 ```
 
 ### Start a Cassandra cluster with 2 nodes
+
 ```
 # Recipe to create a cassandra cluster using docker
 docker run --name node01 -p 9042:9042 -d cassandra

@@ -25,7 +25,7 @@ REPLICATION_FACTOR = os.getenv("CASSANDRA_REPLICATION_FACTOR", "1")
 
 def print_menu():
     mm_options = {
-        1: "Show all data",
+        1: "Get Air Quality Data for a City\n(only for Ozone 8-hour 2015 or Ozone 1-hour 1979)",
         2: "Exit",
     }
     for key in mm_options.keys():
@@ -54,22 +54,23 @@ def main():
         option = int(input("Enter your choice: "))
         print()
         if option == 1:
+            state_code_test = "01"
+            county_code_test = "027"
+            city_name_test = "Ashland"
+            year_test = 2023
+            parameter_name_test = "PM2.5 - Local Conditions"
+            model.get_air_quality_data(
+                session, state_code_test, county_code_test, city_name_test, year_test, parameter_name_test
+            )
+
             # state_code = input("Enter state code: ")
             # county_code = input("Enter county code: ")
             # city_name = input("Enter city name: ")
             # year = int(input("Enter year: "))
             # parameter_name = input("Enter parameter name: ")
-
-            # temp test
-            state_code = "01"
-            county_code = "003"
-            city_name = "Fairhope"
-            year = 2023
-            parameter_name = "Ozone"
-
-            model.get_air_quality_data(
-                session, state_code, county_code, city_name, year, parameter_name
-            )
+            # model.get_air_quality_data(
+            #     session, state_code, county_code, city_name, year, parameter_name
+            # )
 
         elif option == 2:
             exit(0)

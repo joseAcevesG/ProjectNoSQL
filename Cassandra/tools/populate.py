@@ -44,10 +44,10 @@ def cql_stmt_generator():
                     float(row["2nd Max Value"]) if row["2nd Max Value"] else "NULL",
                     float(row["3rd Max Value"]) if row["3rd Max Value"] else "NULL",
                     float(row["4th Max Value"]) if row["4th Max Value"] else "NULL",
-                    row["1st Max DateTime"] if row["1st Max DateTime"] else "NULL",
-                    row["2nd Max DateTime"] if row["2nd Max DateTime"] else "NULL",
-                    row["3rd Max DateTime"] if row["3rd Max DateTime"] else "NULL",
-                    row["4th Max DateTime"] if row["4th Max DateTime"] else "NULL",
+                    row["1st Max DateTime"] if row["1st Max DateTime"] else "2000-01-01 00:00",
+                    row["2nd Max DateTime"] if row["2nd Max DateTime"] else "2000-01-01 00:00",
+                    row["3rd Max DateTime"] if row["3rd Max DateTime"] else "2000-01-01 00:00",
+                    row["4th Max DateTime"] if row["4th Max DateTime"] else "2000-01-01 00:00",
                     row["Pollutant Standard"],
                 )
             )
