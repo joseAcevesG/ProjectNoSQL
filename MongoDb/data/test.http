@@ -1,0 +1,63 @@
+###
+POST http://localhost:8000/airline/gender
+Content-Type: application/json
+
+{
+    "gender": "male"
+}
+
+###
+POST http://localhost:8000/airline/reason_for_travel
+Content-Type: application/json
+
+{
+    "reason": "back_home"
+}
+
+###
+POST http://localhost:8000/airline/accomodation_type
+Content-Type: application/json
+
+{
+    "accomodation": "hotel"
+}
+
+###
+POST http://localhost:8000/airline/transportation_type
+Content-Type: application/json
+
+{
+    "transportation": "own_car"
+}
+
+###
+POST http://localhost:8000/airline/ticket_type
+Content-Type: application/json
+
+{
+    "ticket": "economy"
+}
+
+###
+POST http://localhost:8000/airline
+Content-Type: application/json
+
+{
+    "airline": "Aeromexico",
+    "from_": "GDL",
+    "to": "JFK",
+    "day": 15,
+    "month": 12,
+    "year": 2020,
+    "duration": 5,
+    "age": 22,
+    "gender": "male",
+    "reason": "back_home",
+    "stay": "hotel",
+    "transit": "own_car",
+    "connection": false,
+    "wait": 30,
+    "ticket": "business",
+    "checked_bags": 1,
+    "carry_on": true
+}

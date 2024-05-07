@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 import uuid
 from typing import Optional
+
+from bson import ObjectId
 from pydantic import BaseModel, Field
+
 
 class Airline(BaseModel):
     id: str = Field(default_factory=uuid.uuid4, alias="_id")
@@ -36,15 +39,85 @@ class Airline(BaseModel):
                 "year": 2024,
                 "duration": 7,
                 "age": 29,
-                "gender": "Female",
-                "reason": "Business",
-                "stay": "Home",
-                "transit": "Airport cab",
+                "gender": "female",
+                "reason": "business",
+                "stay": "home",
+                "transit": "airport_cab",
                 "connection": False,
                 "wait": 30,
-                "ticket": "Business",
+                "ticket": "business",
                 "checked_bags": 1,
-                "carry_on": True
+                "carry_on": True,
+            }
+        }
+
+
+class GenderOptions(BaseModel):
+    id: str = Field(default_factory=uuid.uuid4, alias="_id")
+    gender: str = Field(...)
+
+    class Config:
+        allow_population_by_field_name = True
+        schema_extra = {
+            "example": {
+                "_id": "123e4567-e89b-12d3-a456-426614174000",
+                "gender": "male",
+            }
+        }
+
+
+class ReasonForTravel(BaseModel):
+    id: str = Field(default_factory=uuid.uuid4, alias="_id")
+    reason: str = Field(...)
+
+    class Config:
+        allow_population_by_field_name = True
+        schema_extra = {
+            "example": {
+                "_id": "123e4567-e89b-12d3-a456-426614174000",
+                "reason": "back_home",
+            }
+        }
+
+
+class AccomodationType(BaseModel):
+    id: str = Field(default_factory=uuid.uuid4, alias="_id")
+    accomodation: str = Field(...)
+
+    class Config:
+        allow_population_by_field_name = True
+        schema_extra = {
+            "example": {
+                "_id": "123e4567-e89b-12d3-a456-426614174000",
+                "accomodation": "home",
+            }
+        }
+
+
+class TransportationType(BaseModel):
+    id: str = Field(default_factory=uuid.uuid4, alias="_id")
+    transportation: str = Field(...)
+
+    class Config:
+        allow_population_by_field_name = True
+        schema_extra = {
+            "example": {
+                "_id": "123e4567-e89b-12d3-a456-426614174000",
+                "transportation": "own_car",
+            }
+        }
+
+
+class TicketType(BaseModel):
+    id: str = Field(default_factory=uuid.uuid4, alias="_id")
+    ticket: str = Field(...)
+
+    class Config:
+        allow_population_by_field_name = True
+        schema_extra = {
+            "example": {
+                "_id": "123e4567-e89b-12d3-a456-426614174000",
+                "ticket": "economy",
             }
         }
 
@@ -60,7 +133,7 @@ class FlightUpdate(BaseModel):
     age: Optional[int]
     gender: Optional[str]
     reason: Optional[str]
-    stay:  Optional[str]
+    stay: Optional[str]
     transit: Optional[str]
     connection: Optional[bool]
     wait: Optional[int]
@@ -88,18 +161,6 @@ class FlightUpdate(BaseModel):
                 "wait": 30,
                 "ticket": "Business",
                 "checked_bags": 1,
-                "carry_on": True
-            }
-        }
-
-class AirportRecommendation(BaseModel):
-    airport: str
-    benefit_score: float
-
-    class Config:
-        schema_extra = {
-            "example": {
-                "airport": "GDL",
-                "benefit_score": 0.8
+                "carry_on": True,
             }
         }
