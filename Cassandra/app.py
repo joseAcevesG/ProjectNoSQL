@@ -6,7 +6,6 @@ import random
 from datetime import datetime
 
 import model
-
 from cassandra.cluster import Cluster
 
 # Set logger
@@ -55,12 +54,21 @@ def main():
         option = int(input("Enter your choice: "))
         print()
         if option == 1:
-            stateCode = input("Enter state code: ")
-            countyCode = input("Enter county code: ")
-            parameterName = input("Enter parameter name: ")
-            year = int(input("Enter year: "))
+            # state_code = input("Enter state code: ")
+            # county_code = input("Enter county code: ")
+            # city_name = input("Enter city name: ")
+            # year = int(input("Enter year: "))
+            # parameter_name = input("Enter parameter name: ")
+
+            # temp test
+            state_code = "01"
+            county_code = "003"
+            city_name = "Fairhope"
+            year = 2023
+            parameter_name = "Ozone"
+
             model.get_air_quality_data(
-                session, stateCode, countyCode, parameterName, year
+                session, state_code, county_code, city_name, year, parameter_name
             )
 
         elif option == 2:
