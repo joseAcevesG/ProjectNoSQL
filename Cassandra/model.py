@@ -2,16 +2,12 @@
 
 import logging
 
-import pandas as pd
-
 log = logging.getLogger()
 
 CREATE_KEYSPACE = """
         CREATE KEYSPACE IF NOT EXISTS {}
         WITH replication = {{ 'class': 'SimpleStrategy', 'replication_factor': {} }}
 """
-# INSERT INTO air_quality_data (state_code, county_code, city_name, latitude, longitude, year, parameter_name, units_of_measure, arithmetic_mean, max_value, max_datetime) VALUES ('01', '003', 'Fairhope', 30.497478, -87.880258, '2023', 'PM2.5 - Local Conditions', 'Micrograms/cubic meter (LC)', 7.662048, 18.9, '2023-06-29 00:00');
-
 
 CREATE_AIR_QUALITY_TABLE = """
     CREATE TABLE IF NOT EXISTS air_quality_data (
@@ -22,19 +18,27 @@ CREATE_AIR_QUALITY_TABLE = """
         longitude DOUBLE,
         year INT,
         parameter_name TEXT,
-        units_of_measure TEXT,
         arithmetic_mean DOUBLE,
-        max_value DOUBLE,
-        max_datetime TIMESTAMP,
-        PRIMARY KEY ((state_code), county_code, year, parameter_name, max_datetime)
+        arithmetic_standard_deviation DOUBLE,
+        first_max_value DOUBLE,
+        second_max_value DOUBLE,
+        third_max_value DOUBLE,
+        fourth_max_value DOUBLE,
+        first_max_datetime TIMESTAMP,
+        second_max_datetime TIMESTAMP,
+        third_max_datetime TIMESTAMP,
+        fourth_max_datetime TIMESTAMP,
+        Pollutant_standard TEXT,
+        PRIMARY KEY ((state_code, county_code, city_name), year, parameter_name, first_max_datetime)
     )
 """
 
 SELECT_AIR_QUALITY_DATA = """
-    SELECT state_code, county_code, city_name, latitude, longitude, year, parameter_name, units_of_measure, arithmetic_mean, max_value, max_datetime
+    SELECT state_code, county_code, city_name, latitude, longitude, year, parameter_name, arithmetic_mean, arithmetic_standard_deviation, first_max_value, second_max_value, third_max_value, fourth_max_value, first_max_datetime, second_max_datetime, third_max_datetime, fourth_max_datetime, pollutant_standard
     FROM air_quality_data
     WHERE state_code = ?
     AND county_code = ?
+    AND city_name = ?
     AND year = ?
     AND parameter_name = ?
 """
@@ -52,41 +56,57 @@ def create_schema(session):
     session.execute(CREATE_AIR_QUALITY_TABLE)
 
 
-def get_air_quality_data(session, state_code, county_code, parameter_name, year):
-    logging.info(
-        f"Retrieving air quality data for state: {state_code}, county: {county_code}, parameter: {parameter_name}, year: {year}"
+def evaluate_air_quality(arithmetic_mean, max_values, pollutant_standard):
+    # Definir los umbrales de calidad del aire para el ozono según la EPA
+    # Estos valores son ejemplos y deben ser verificados y ajustados según las regulaciones locales
+    thresholds = {
+        "Ozone 8-hour 2015": 0.070,  # partes por millón
+        "Ozone 1-hour 1979": 0.120,  # partes por millón
+    }
+
+    quality = "Good"
+    standard_limit = thresholds.get(pollutant_standard, None)
+
+    if standard_limit is None:
+        return "No standard limit available for this pollutant."
+
+    # Evaluar la media aritmética
+    if arithmetic_mean > standard_limit:
+        quality = "Unhealthy"
+
+    # Evaluar los valores máximos
+    for value in max_values:
+        if value > standard_limit:
+            quality = "Unhealthy"
+            break
+
+    return f"The air quality for {pollutant_standard} is {quality} based on an arithmetic mean of {arithmetic_mean} and maximum values of {max_values}."
+
+
+def get_air_quality_data(
+    session, state_code, county_code, city_name, year, parameter_name
+):
+    log.info(
+        f"Retrieving air quality data for {city_name}, {county_code}, {state_code} in {year} regarding {parameter_name}"
     )
-    stmt = session.prepare(
-        "SELECT * FROM air_quality_data WHERE state_code=? AND county_code=? AND year=? AND parameter_name=?"
-    )
+    stmt = session.prepare(SELECT_AIR_QUALITY_DATA)
+
+    # Ejecutamos la consulta con los parámetros necesarios
     rows = session.execute(
-        stmt,
-        [state_code, county_code, year, parameter_name],
+        stmt, [state_code, county_code, city_name, year, parameter_name]
     )
 
+    # Imprimimos los resultados obtenidos
     for row in rows:
-        print(f"=== Air Quality Data ===")
-        print(f"- State Code: {row.state_code}")
-        print(f"- County Code: {row.county_code}")
-        print(f"- Latitude: {row.latitude}")
-        print(f"- Longitude: {row.longitude}")
-        print(f"- Parameter Name: {row.parameter_name}")
-        print(f"- Year: {row.year}")
-        print(f"- Units of Measure: {row.units_of_measure}")
-        print(f"- Arithmetic Mean: {row.arithmetic_mean}")
-        print(f"- Max Value: {row.max_value}")
-        print(f"- Max DateTime: {row.max_datetime}")
-
-
-"""     for row in rows:
-        print(f"=== Air Quality Data ===")
-        print(f"- State Code: {row.state_code}")
-        print(f"- County Code: {row.county_code}")
-        print(f"- Latitude: {row.latitude}")
-        print(f"- Longitude: {row.longitude}")
-        print(f"- Parameter Name: {row.parameter_name}")
-        print(f"- Year: {row.year}")
-        print(f"- Units of Measure: {row.units_of_measure}")
-        print(f"- Arithmetic Mean: {row.arithmetic_mean}")
-        print(f"- Max Value: {row.max_value}")
-        print(f"- Max DateTime: {row.max_datetime}") """
+        print(
+            evaluate_air_quality(
+                row.arithmetic_mean,
+                [
+                    row.first_max_value,
+                    row.second_max_value,
+                    row.third_max_value,
+                    row.fourth_max_value,
+                ],
+                row.pollutant_standard,
+            )
+        )
